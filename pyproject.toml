@@ -17,10 +17,15 @@ undetected = [
     "undetected-chromedriver>=3.5.5",
     "selenium>=4.30",
 ]
+# Bearer-token auth for the HTTP transport (mcp_auth library).
+http-auth = [
+    "mcp-auth @ git+https://github.com/Jedi-Pz/mcp-auth.git",
+]
 
 [project.scripts]
 gemini-search = "gemini_search.server:main"
 gemini-search-mcp = "gemini_search_mcp:main"
+gemini-search-mcp-http = "gemini_search_mcp:main_http"
 
 [build-system]
 requires = ["setuptools>=68"]
