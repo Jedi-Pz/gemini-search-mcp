@@ -13,6 +13,32 @@ from mcp.types import ToolAnnotations
 from gemini_search.engine import AIModeEngine
 
 
+def _transport_security():
+    """Build TransportSecuritySettings from the environment.
+
+    The streamable-HTTP server rejects requests whose Host header is not
+    localhost (DNS-rebinding protection, HTTP 421). Behind a reverse proxy
+    the public Host differs, so it must be configured:
+
+    - ``MCP_ALLOWED_HOSTS``: comma-separated ``host[:port]`` entries to allow
+      (e.g. ``example.com:300,127.0.0.1:300``). Protection stays ON.
+    - ``MCP_DNS_REBINDING_PROTECTION=0``: disable the check entirely.
+      Reasonable when every request already requires a valid bearer token —
+      rebinding cannot get an attacker past token auth.
+
+    Unset: SDK default (protection on, localhost only).
+    """
+    from mcp.server.transport_security import TransportSecuritySettings
+
+    if os.environ.get("MCP_DNS_REBINDING_PROTECTION") == "0":
+        return TransportSecuritySettings(enable_dns_rebinding_protection=False)
+    allowed = os.environ.get("MCP_ALLOWED_HOSTS")
+    if allowed:
+        hosts = [h.strip() for h in allowed.split(",") if h.strip()]
+        return TransportSecuritySettings(allowed_hosts=hosts)
+    return None
+
+
 def _build_mcp() -> FastMCP:
     """Build the FastMCP server, enabling bearer-token auth when configured.
 
@@ -21,7 +47,7 @@ def _build_mcp() -> FastMCP:
     unset, the server runs unauthenticated (e.g. local stdio use).
     """
     if not os.environ.get("MCP_AUTH_DB"):
-        return FastMCP(name="Gemini Search")
+        return FastMCP(name="Gemini Search", transport_security=_transport_security())
 
     from mcp.server.auth.settings import AuthSettings
     from pydantic import AnyHttpUrl
@@ -39,6 +65,7 @@ def _build_mcp() -> FastMCP:
             issuer_url=AnyHttpUrl(issuer),
             resource_server_url=AnyHttpUrl(issuer.rstrip("/") + "/mcp"),
         ),
+        transport_security=_transport_security(),
     )
 
 
