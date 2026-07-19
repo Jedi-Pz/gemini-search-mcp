@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: gemini-search.Dockerfile
+      args:
+        # Pin a commit SHA to bust the pip cache when the fork moves.
+        GEMINI_REF: ${GEMINI_REF:-main}
     container_name: pg-gemini-search
     restart: unless-stopped
     shm_size: "2gb"
@@ -13,6 +16,9 @@ services:
       MCP_AUTH_DB: /data/tokens.db
       MCP_AUTH_SERVICE: gemini
       MCP_AUTH_ISSUER: http://localhost:8080
+      # Bearer auth is the security boundary; the Host allow-list would need
+      # updating on every VPS migration, so the rebinding check is disabled.
+      MCP_DNS_REBINDING_PROTECTION: "0"
       # Chromium engine
       CHROME_PATH: /usr/bin/chromium
       BROWSER_CHANNEL: chromium

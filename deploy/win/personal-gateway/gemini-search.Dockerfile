@@ -6,8 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # The fork (with the gemini-search-mcp-http entrypoint) + the mcp_auth library.
+# GEMINI_REF lets compose pin a commit; changing it busts the build cache.
+ARG GEMINI_REF=main
 RUN pip install --no-cache-dir \
-      "git+https://github.com/Jedi-Pz/gemini-search-mcp.git@main" \
+      "git+https://github.com/Jedi-Pz/gemini-search-mcp.git@${GEMINI_REF}" \
       "mcp-auth @ git+https://github.com/Jedi-Pz/mcp-auth.git"
 
 ENV CHROME_PATH=/usr/bin/chromium \
