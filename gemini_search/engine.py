@@ -338,6 +338,11 @@ class AIModeEngine:
             "--no-default-browser-check",
             "--disable-background-timer-throttling",
         ]
+        # Chromium refuses to run its sandbox as root (e.g. in containers) —
+        # disable it, and avoid /dev/shm size limits. Opt-out via env =0.
+        run_as_root = hasattr(os, "geteuid") and os.geteuid() == 0
+        if os.environ.get("GEMINI_SEARCH_NO_SANDBOX", "1" if run_as_root else "0") != "0":
+            args += ["--no-sandbox", "--disable-dev-shm-usage"]
         if proxy:
             args.append(f"--proxy-server={proxy}")
         if headless:
