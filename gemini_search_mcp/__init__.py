@@ -5,13 +5,44 @@ Exposes Google Search AI Mode as MCP tools. Any MCP-compatible client
 real-time web-grounded answers powered by Gemini — zero API key, unlimited.
 """
 import asyncio
+import os
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
 from mcp.types import ToolAnnotations
 
 from gemini_search.engine import AIModeEngine
 
-mcp = FastMCP(name="Gemini Search")
+
+def _build_mcp() -> FastMCP:
+    """Build the FastMCP server, enabling bearer-token auth when configured.
+
+    Auth is provided by the optional ``mcp_auth`` package and is active only
+    when ``MCP_AUTH_DB`` points at that service's SQLite token store. When
+    unset, the server runs unauthenticated (e.g. local stdio use).
+    """
+    if not os.environ.get("MCP_AUTH_DB"):
+        return FastMCP(name="Gemini Search")
+
+    from mcp.server.auth.settings import AuthSettings
+    from pydantic import AnyHttpUrl
+
+    from mcp_auth.adapters import mcp_sdk1
+    from mcp_auth.store import open_store
+
+    service = os.environ.get("MCP_AUTH_SERVICE", "gemini")
+    store = open_store()  # path from MCP_AUTH_DB
+    issuer = os.environ.get("MCP_AUTH_ISSUER", "http://localhost:8080")
+    return FastMCP(
+        name="Gemini Search",
+        token_verifier=mcp_sdk1.build(store, service=service),
+        auth=AuthSettings(
+            issuer_url=AnyHttpUrl(issuer),
+            resource_server_url=AnyHttpUrl(issuer.rstrip("/") + "/mcp"),
+        ),
+    )
+
+
+mcp = _build_mcp()
 READONLY = ToolAnnotations(readOnlyHint=True)
 
 _engine: Optional[AIModeEngine] = None
@@ -94,6 +125,18 @@ async def ask(
 
 def main():
     mcp.run(transport='stdio')
+
+
+def main_http():
+    """Serve the MCP over streamable-HTTP (network) instead of stdio.
+
+    Listens on HOST:PORT (default 0.0.0.0:8080) at path ``/mcp``. When
+    ``MCP_AUTH_DB`` is set, every request must carry a valid
+    ``Authorization: Bearer`` token (see ``_build_mcp``).
+    """
+    mcp.settings.host = os.environ.get("HOST", "0.0.0.0")
+    mcp.settings.port = int(os.environ.get("PORT", "8080"))
+    mcp.run(transport="streamable-http")
 
 
 if __name__ == "__main__":
