@@ -1,0 +1,13 @@
+# frpc config. Values come from environment via Go-template .Envs (set in compose).
+serverAddr = "{{ .Envs.VPS_ADDR }}"
+serverPort = {{ .Envs.VPS_PORT }}
+auth.token = "{{ .Envs.FRP_TOKEN }}"
+
+transport.tcpMux = true
+
+[[proxies]]
+name = "personal-gw"
+type = "tcp"
+localIP = "personal-nginx"
+localPort = 80
+remotePort = {{ .Envs.PUBLIC_PORT }}

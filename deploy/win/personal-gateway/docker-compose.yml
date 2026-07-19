@@ -1,0 +1,70 @@
+services:
+  gemini-search:
+    build:
+      context: .
+      dockerfile: gemini-search.Dockerfile
+    container_name: pg-gemini-search
+    restart: unless-stopped
+    shm_size: "2gb"
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "8080"
+      # In-app bearer auth (mcp_auth). Per-service SQLite token store on a volume.
+      MCP_AUTH_DB: /data/tokens.db
+      MCP_AUTH_SERVICE: gemini
+      MCP_AUTH_ISSUER: http://localhost:8080
+      # Chromium engine
+      CHROME_PATH: /usr/bin/chromium
+      BROWSER_CHANNEL: chromium
+      GEMINI_SEARCH_USER_DATA_DIR: /profile
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - gemini-tokens:/data
+      - gemini-chrome-profile:/profile
+    networks:
+      - personal-net
+
+  mimo-tts-proxy:
+    build:
+      context: ./mimo-tts-proxy-openai
+    container_name: pg-mimo-tts
+    restart: unless-stopped
+    environment:
+      MCP_AUTH_DB: /data/tokens.db
+      MIMO_API_KEY: ${MIMO_API_KEY:?set MIMO_API_KEY in .env}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - mimo-tokens:/data
+    networks:
+      - personal-net
+
+  personal-nginx:
+    image: nginx:alpine
+    container_name: pg-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - personal-net
+
+  frpc:
+    build:
+      context: .
+      dockerfile: frpc.Dockerfile
+    container_name: pg-frpc
+    restart: unless-stopped
+    environment:
+      FRP_TOKEN: ${FRP_TOKEN:?set FRP_TOKEN in .env}
+      VPS_ADDR: ${VPS_ADDR:-152.136.39.239}
+      VPS_PORT: ${VPS_PORT:-7000}
+      PUBLIC_PORT: ${PUBLIC_PORT:-300}
+    networks:
+      - personal-net
+
+networks:
+  personal-net:
+
+volumes:
+  gemini-tokens:
+  gemini-chrome-profile:
+  mimo-tokens:

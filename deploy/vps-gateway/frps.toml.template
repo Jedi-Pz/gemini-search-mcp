@@ -1,0 +1,31 @@
+# VPS frps configuration for the personal gateway (rendered by install.sh).
+# The VPS is a PURE RELAY: no nginx, no auth logic, no Docker. It only runs
+# frps, which terminates the frpc tunnels from pz-win and exposes the mapped
+# ports. All bearer-token auth happens inside the backend apps on pz-win.
+#
+# Values come from gateway.env via install.sh — do not edit secrets here.
+
+bindPort = ${FRP_BIND_PORT}
+
+auth.token = "${FRP_TOKEN}"
+
+transport.tcpMux = true
+
+# Dashboard: localhost ONLY. Never expose this publicly — access it via
+#   ssh -L 7500:127.0.0.1:7500 <vps>
+webServer.addr = "127.0.0.1"
+webServer.port = 7500
+webServer.user = "${DASHBOARD_USER}"
+webServer.password = "${DASHBOARD_PASSWORD}"
+
+# Only allow frpc clients to claim these public ports:
+#   ${PUBLIC_PORT}  -> personal gateway (nginx on pz-win)
+#   7001            -> mouding MCP (separate, semi-production; declared by its own frpc)
+allowPorts = [
+  { start = ${PUBLIC_PORT}, end = ${PUBLIC_PORT} },
+  { start = 7001, end = 7001 }
+]
+
+log.to = "/opt/frp/frps.log"
+log.level = "info"
+log.maxDays = 7

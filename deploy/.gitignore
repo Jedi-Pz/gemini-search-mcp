@@ -1,0 +1,4 @@
+.env
+gateway.env
+frpc
+*.tar.gz
