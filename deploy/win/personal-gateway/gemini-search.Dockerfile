@@ -4,7 +4,7 @@ FROM python:3.12-slim
 # xvfb: the undetected backend runs Chromium headful (headless is CAPTCHA-bait)
 # on a virtual display.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      chromium tini git ca-certificates xvfb \
+      chromium tini git ca-certificates xvfb xauth \
     && rm -rf /var/lib/apt/lists/*
 
 # The fork (with the gemini-search-mcp-http entrypoint) + the mcp_auth library.
