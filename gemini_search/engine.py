@@ -278,10 +278,26 @@ class AIModeEngine:
                     proxy_server=proxy_server,
                     chromedriver_path=chromedriver_path,
                 )
-            await self._warmup()
+            await self._warmup_with_retry()
         except Exception:
             await self.stop()
             raise
+
+    async def _warmup_with_retry(self, attempts: int = 4, base_delay: float = 8.0):
+        """Warmup with backoff: Google serves /sorry/ intermittently on shared
+        proxy exit IPs, so a single probe failing is not fatal — retry a few
+        times before giving up. Tunable via GEMINI_SEARCH_WARMUP_ATTEMPTS."""
+        attempts = int(os.environ.get("GEMINI_SEARCH_WARMUP_ATTEMPTS", attempts))
+        last = None
+        for i in range(attempts):
+            try:
+                await self._warmup()
+                return
+            except RuntimeError as exc:
+                last = exc
+                if i < attempts - 1:
+                    await asyncio.sleep(base_delay * (i + 1))
+        raise last
 
     def _prepare_user_data_dir(self, user_data_dir: Optional[str]) -> str:
         if user_data_dir:
@@ -505,6 +521,11 @@ class AIModeEngine:
             except asyncio.TimeoutError:
                 raise RuntimeError("Query timed out")
             except Exception:
+                await self._warmup()
+                result = await self._evaluate(js)
+            # no_token = Google served a page without the AI-Mode session token
+            # (interstitial/consent/soft-block). Re-warm the session and retry once.
+            if isinstance(result, dict) and result.get("error") == "no_token":
                 await self._warmup()
                 result = await self._evaluate(js)
 
