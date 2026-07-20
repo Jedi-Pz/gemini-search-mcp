@@ -19,9 +19,12 @@ services:
       # Bearer auth is the security boundary; the Host allow-list would need
       # updating on every VPS migration, so the rebinding check is disabled.
       MCP_DNS_REBINDING_PROTECTION: "0"
-      # Chromium engine
+      # Chromium engine: undetected-chromedriver backend + headful-on-xvfb,
+      # otherwise Google serves /sorry/ (CAPTCHA) on the warmup probe.
       CHROME_PATH: /usr/bin/chromium
       BROWSER_CHANNEL: chromium
+      GEMINI_SEARCH_BROWSER_BACKEND: undetected
+      HEADLESS: "0"
       GEMINI_SEARCH_USER_DATA_DIR: /profile
       PYTHONUNBUFFERED: "1"
     volumes:
