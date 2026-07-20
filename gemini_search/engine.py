@@ -50,15 +50,18 @@ _ASK_JS = """
         div.innerHTML = fh;
         // Remove non-content elements
         div.querySelectorAll('script,style,button,noscript,[aria-hidden="true"],span[style*="display:none"],.LGKDTe,.SGF5Lb').forEach(x => x.remove());
-        // Collect text from ALL answer blocks: pTRUV first (short answers), then n6owBd (paragraphs)
+        // Collect text from ALL answer blocks in DOM order:
+        // pTRUV (short answers), n6owBd (paragraphs/headers), li (list details).
+        // An element whose ancestor was already captured is skipped, so nested
+        // matches never duplicate text.
         let parts = [];
-        div.querySelectorAll('.pTRUV').forEach(el => {
+        div.querySelectorAll('.pTRUV,.n6owBd,li').forEach(el => {
+            let anc = el.parentElement, nested = false;
+            while (anc && anc !== div) { if (anc.__cap) { nested = true; break; } anc = anc.parentElement; }
+            if (nested) return;
             const t = el.textContent.trim();
-            if (t && t.length > 1) parts.push(t);
-        });
-        div.querySelectorAll('.n6owBd').forEach(el => {
-            const t = el.textContent.trim();
-            if (t && t.length > 10) parts.push(t);
+            const minLen = el.tagName === 'LI' ? 10 : 1;
+            if (t && t.length > minLen) { el.__cap = true; parts.push(t); }
         });
         // Fallback: all dir=ltr blocks minus citation containers
         if (!parts.length) {
