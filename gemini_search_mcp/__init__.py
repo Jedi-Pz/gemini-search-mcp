@@ -82,7 +82,7 @@ async def _get_engine() -> AIModeEngine:
         async with _lock:
             if _engine is None:
                 import os
-                _engine = AIModeEngine()
+                engine = AIModeEngine()
                 cdp = os.environ.get("CDP_URL")
                 channel = os.environ.get("BROWSER_CHANNEL", "chrome")
                 headless = os.environ.get("HEADLESS", "1") != "0"
@@ -90,7 +90,9 @@ async def _get_engine() -> AIModeEngine:
                 browser_backend = os.environ.get("GEMINI_SEARCH_BROWSER_BACKEND")
                 proxy_server = os.environ.get("GEMINI_SEARCH_PROXY_SERVER")
                 chromedriver_path = os.environ.get("GEMINI_SEARCH_CHROMEDRIVER") or os.environ.get("UC_CHROMEDRIVER")
-                await _engine.start(
+                # Only cache after start() succeeds — a failed start (e.g.
+                # Google CAPTCHA) must not poison future calls.
+                await engine.start(
                     cdp_url=cdp,
                     headless=headless,
                     channel=channel,
@@ -99,6 +101,7 @@ async def _get_engine() -> AIModeEngine:
                     proxy_server=proxy_server,
                     chromedriver_path=chromedriver_path,
                 )
+                _engine = engine
     return _engine
 
 
