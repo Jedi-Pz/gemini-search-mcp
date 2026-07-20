@@ -2,7 +2,7 @@
 FROM python:3.12-slim
 
 # xvfb: the undetected backend runs Chromium headful (headless is CAPTCHA-bait)
-# on a virtual display.
+# on a virtual display. xauth is required by xvfb-run.
 RUN apt-get update && apt-get install -y --no-install-recommends \
       chromium tini git ca-certificates xvfb xauth \
     && rm -rf /var/lib/apt/lists/*
@@ -19,5 +19,8 @@ ENV CHROME_PATH=/usr/bin/chromium \
     BROWSER_CHANNEL=chromium \
     PYTHONUNBUFFERED=1
 
+COPY gemini-entrypoint.sh /usr/local/bin/gemini-entrypoint.sh
+RUN chmod +x /usr/local/bin/gemini-entrypoint.sh
+
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["xvfb-run", "-a", "gemini-search-mcp-http"]
+CMD ["/usr/local/bin/gemini-entrypoint.sh"]
