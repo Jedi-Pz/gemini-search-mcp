@@ -53,15 +53,16 @@ _ASK_JS = """
         // Collect text from ALL answer blocks in DOM order:
         // pTRUV (short answers), n6owBd (paragraphs/headers), li (list details).
         // An element whose ancestor was already captured is skipped, so nested
-        // matches never duplicate text.
-        let parts = [];
+        // matches never duplicate text; identical blocks (Google renders source
+        // cards twice in the payload) are deduped by exact text.
+        let parts = [], seen = new Set();
         div.querySelectorAll('.pTRUV,.n6owBd,li').forEach(el => {
             let anc = el.parentElement, nested = false;
             while (anc && anc !== div) { if (anc.__cap) { nested = true; break; } anc = anc.parentElement; }
             if (nested) return;
             const t = el.textContent.trim();
             const minLen = el.tagName === 'LI' ? 10 : 1;
-            if (t && t.length > minLen) { el.__cap = true; parts.push(t); }
+            if (t && t.length > minLen && !seen.has(t)) { seen.add(t); el.__cap = true; parts.push(t); }
         });
         // Fallback: all dir=ltr blocks minus citation containers
         if (!parts.length) {
