@@ -16,6 +16,8 @@ dependencies = [
 undetected = [
     "undetected-chromedriver>=3.5.5",
     "selenium>=4.30",
+    # distutils shim: uc imports distutils, removed in Python 3.12
+    "setuptools; python_version >= '3.12'",
 ]
 # Bearer-token auth for the HTTP transport (mcp_auth library).
 http-auth = [
